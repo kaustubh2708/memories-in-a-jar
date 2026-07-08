@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sunset in a jar</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫙</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#faf6ec;
+    --ink:#57534a;
+    --ink-soft:#8a857a;
+    --type:'Special Elite','Courier Prime','Courier New',monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ background:var(--paper); }
+  body{
+    font-family:var(--type);
+    color:var(--ink);
+    background:var(--paper);
+    min-height:100vh;
+    padding:34px 22px 90px;
+  }
+  /* slow ambient sky drifting behind the paper */
+  body::before{
+    content:""; position:fixed; inset:-25%; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(ellipse at 22% 12%, rgba(255,196,130,.18), transparent 55%),
+      radial-gradient(ellipse at 82% 88%, rgba(255,155,160,.13), transparent 50%),
+      radial-gradient(ellipse at 60% 40%, rgba(190,165,255,.09), transparent 60%);
+    animation:skydrift 46s ease-in-out infinite alternate;
+  }
+  @keyframes skydrift{
+    from{ transform:translate(-2%,-1.5%) scale(1); }
+    to{ transform:translate(2.5%,2%) scale(1.08); }
+  }
+
+  /* ---------- header ---------- */
+  header{ max-width:880px; margin:0 auto 10px; text-align:center; }
+  .squiggle{ display:block; width:min(560px,86%); margin:0 auto 26px; }
+  .squiggle path{
+    stroke-dasharray:580; stroke-dashoffset:580;
+    animation:draw 1.7s ease .15s forwards;
+  }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+  #pour-btn{ margin-top:16px; font-size:13px; }
+  h1{
+    font-size:clamp(26px,4.4vw,38px);
+    font-weight:400;
+    letter-spacing:.06em;
+  }
+  .sub{ margin-top:10px; font-size:14px; color:var(--ink-soft); letter-spacing:.08em; }
+  .count{ margin-top:6px; font-size:12.5px; color:var(--ink-soft); opacity:.85; }
+
+  /* ---------- shelf ---------- */
+  #shelf{
+    max-width:880px;
+    margin:44px auto 0;
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(185px, 1fr));
+    gap:44px 30px;
+    justify-items:center;
+  }
+  .jar{
+    width:100%;
+    max-width:230px;
+    text-align:center;
+    cursor:pointer;
+    transform:rotate(var(--tilt,0deg));
+    transition:transform .25s ease;
+    animation:settle .45s ease backwards;
+  }
+  .jar:hover{ transform:rotate(var(--tilt,0deg)) translateY(-5px) scale(1.02); }
+  @keyframes settle{ from{ opacity:0; transform:translateY(14px) rotate(var(--tilt,0deg)); } }
+  .jar svg{ width:100%; height:auto; display:block; }
+  .jar figcaption{ margin-top:2px; }
+  .jar .t{
+    display:block; font-size:15px; letter-spacing:.05em;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .jar .d{ display:block; margin-top:5px; font-size:11.5px; color:var(--ink-soft); letter-spacing:.1em; }
+  .jar.add .t{ color:var(--ink-soft); }
+
+  /* fireflies caught inside each jar */
+  .fly{
+    animation-name:flyfloat, flyglow;
+    animation-timing-function:ease-in-out;
+    animation-iteration-count:infinite;
+    animation-direction:alternate, normal;
+  }
+  @keyframes flyfloat{ to{ transform:translate(var(--dx,10px), var(--dy,-16px)); } }
+  @keyframes flyglow{ 0%,100%{ opacity:.15; } 50%{ opacity:1; } }
+
+  /* warm glow + photo breathe + lid wiggle on hover */
+  .jar .glow{ opacity:0; transition:opacity .4s ease; mix-blend-mode:screen; }
+  .jar:hover .glow{ opacity:.55; }
+  .jar image{ transition:transform .5s ease; transform-box:view-box; transform-origin:50% 60%; }
+  .jar:hover image{ transform:scale(1.04); }
+  .lid{ transform-box:view-box; transform-origin:50% 16%; }
+  .jar:hover .lid{ animation:wiggle .55s ease; }
+  @keyframes wiggle{ 30%{ transform:rotate(-3.2deg); } 70%{ transform:rotate(2.2deg); } }
+
+  /* the empty jar invites you in */
+  .jar.add:hover .dash{ animation:ants .9s linear infinite; }
+  @keyframes ants{ to{ stroke-dashoffset:-15; } }
+  .jar.add .plus{ transform-box:view-box; transform-origin:50% 60%; animation:pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse{ 50%{ transform:scale(1.16); } }
+
+  /* a freshly-jarred sunset drops onto the shelf */
+  .jar.landed{ animation:drop .75s cubic-bezier(.34,1.45,.44,1) backwards; }
+  @keyframes drop{
+    0%{ opacity:0; transform:translateY(-85px) rotate(var(--tilt,0deg)) scale(1.05); }
+    70%{ opacity:1; transform:translateY(6px) rotate(var(--tilt,0deg)); }
+    100%{ transform:translateY(0) rotate(var(--tilt,0deg)); }
+  }
+
+  /* ---------- overlays ---------- */
+  .overlay{
+    position:fixed; inset:0; z-index:50;
+    background:rgba(38,31,26,.55);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    animation:fade .2s ease;
+  }
+  @keyframes fade{ from{ opacity:0; } }
+  [hidden]{ display:none !important; }
+
+  /* add-modal */
+  .card{
+    background:var(--paper);
+    border:2px solid var(--ink);
+    border-radius:14px 18px 15px 17px / 17px 14px 18px 15px;
+    box-shadow:4px 5px 0 rgba(87,83,74,.25);
+    width:min(400px,94vw);
+    max-height:92vh; overflow:auto;
+    padding:26px 26px 22px;
+    text-align:center;
+  }
+  .card h2{ font-weight:400; font-size:19px; letter-spacing:.05em; margin-bottom:16px; }
+  .card .preview-wrap svg{ width:150px; height:auto; }
+  .field{ margin-top:14px; text-align:left; }
+  .field label{ display:block; font-size:11.5px; letter-spacing:.12em; color:var(--ink-soft); margin-bottom:5px; }
+  .field input{
+    width:100%;
+    font-family:var(--type); font-size:16px; color:var(--ink);
+    background:transparent;
+    border:none; border-bottom:2px dashed var(--ink-soft);
+    padding:6px 2px; outline:none;
+  }
+  .field input:focus{ border-bottom-color:var(--ink); }
+  .lids{ display:flex; gap:12px; justify-content:center; margin-top:8px; }
+  .lids button{
+    width:34px; height:26px;
+    border-radius:45% 55% 50% 50% / 60% 60% 45% 45%;
+    border:2px solid transparent;
+    cursor:pointer;
+    transition:transform .15s ease;
+  }
+  .lids button:hover{ transform:scale(1.12); }
+  .lids button.sel{ border-color:var(--ink); transform:scale(1.12); }
+  .actions{ margin-top:22px; display:flex; flex-direction:column; gap:10px; align-items:center; }
+  .btn{
+    font-family:var(--type); font-size:15px; letter-spacing:.06em;
+    color:var(--ink); background:transparent;
+    border:2px solid var(--ink);
+    border-radius:10px 14px 11px 13px / 13px 11px 14px 10px;
+    padding:9px 26px; cursor:pointer;
+    box-shadow:2.5px 3px 0 rgba(87,83,74,.3);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover{ transform:translate(-1px,-1px); box-shadow:3.5px 4px 0 rgba(87,83,74,.3); }
+  .btn:active{ transform:translate(1px,1px); box-shadow:1px 1px 0 rgba(87,83,74,.3); }
+  .linkish{
+    background:none; border:none; cursor:pointer;
+    font-family:var(--type); font-size:12.5px; letter-spacing:.08em;
+    color:var(--ink-soft); text-decoration:underline dotted;
+  }
+
+  /* lightbox */
+  #lightbox{ background:rgba(30,25,20,.88); flex-direction:column; }
+  #lightbox img{
+    max-width:88vw; max-height:62vh;
+    border:10px solid #fdfbf4;
+    box-shadow:0 12px 40px rgba(0,0,0,.5);
+    transform:rotate(-.6deg);
+    background:#fdfbf4;
+    animation:settlein .4s cubic-bezier(.2,.85,.35,1.15);
+  }
+  @keyframes settlein{ from{ opacity:0; transform:scale(.72) rotate(2.5deg); } }
+  #lightbox .cap{ margin-top:22px; text-align:center; color:#f3ead9; }
+  #lightbox .cap .t{ font-size:19px; letter-spacing:.06em; min-height:1.3em; }
+  #lb-title.typing::after{ content:"|"; margin-left:2px; animation:blink .75s steps(1) infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+  #lightbox .cap .d{ margin-top:7px; font-size:12.5px; color:#c9bda7; letter-spacing:.12em; }
+  #lightbox .cap .n{ margin-top:9px; font-size:12.5px; font-style:italic; color:#d8cdb6; max-width:72vw; }
+  #lb-close, #sh-close{
+    position:absolute; top:16px; right:22px; z-index:2;
+    background:none; border:none; cursor:pointer;
+    color:#f3ead9; font-family:var(--type); font-size:30px; line-height:1;
+  }
+  .lb-actions{ margin-top:20px; display:flex; gap:28px; }
+  .lb-actions .linkish{ color:#c9bda7; }
+  #lb-del.arm{ color:#f0a48c; }
+
+  /* slideshow */
+  #show{ background:#191512; }
+  #show img{
+    position:absolute; inset:0; margin:auto;
+    max-width:92vw; max-height:72vh;
+    opacity:0; transition:opacity .9s ease;
+  }
+  #show img.on{ opacity:1; animation:ken 5.2s linear forwards; }
+  @keyframes ken{ to{ transform:scale(1.06); } }
+  #show .cap{
+    position:absolute; bottom:6vh; left:0; right:0; z-index:2;
+    text-align:center; color:#f3ead9;
+  }
+  #show .cap .t{ font-size:19px; letter-spacing:.06em; }
+  #show .cap .d{ margin-top:7px; font-size:12.5px; color:#c9bda7; letter-spacing:.12em; }
+  #show .hint{ position:absolute; bottom:2.2vh; left:0; right:0; text-align:center; font-size:10.5px; color:#8d8271; letter-spacing:.1em; }
+
+  /* drag a photo anywhere onto the page */
+  #drop-hint{
+    position:fixed; inset:14px; z-index:80;
+    border:3px dashed var(--ink-soft); border-radius:20px;
+    background:rgba(250,246,236,.85);
+    display:flex; align-items:center; justify-content:center;
+    font-size:21px; letter-spacing:.1em; color:var(--ink);
+    pointer-events:none;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation-duration:.01ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.01ms !important;
+    }
+  }
+
+  @media (max-width:480px){
+    #shelf{ grid-template-columns:repeat(2, 1fr); gap:34px 18px; }
+    body{ padding:26px 16px 70px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- shared jar shapes -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <clipPath id="jarBodyClip">
+      <path d="M56 70 C54 79 41 85 36 96 C30 107 33 128 31.5 150 C30 176 31 206 34 228 C36.5 245 45 252.5 61 254.5 C86 257.5 117 257.5 141 254 C157.5 251.5 164.5 243 166.5 226 C169.5 203 169.5 173 168.5 149 C167.6 127 170 106 164 96 C158.5 86.5 146.5 79 145 70 C144.6 66 142 62.5 137.5 62.5 L62.5 62.5 C58 62.5 56.6 66.2 56 70 Z"/>
+    </clipPath>
+    <radialGradient id="glowGrad">
+      <stop offset="0%" stop-color="#ffe9b0" stop-opacity=".9"/>
+      <stop offset="60%" stop-color="#ffd28a" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="#ffd28a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>
+
+<header>
+  <svg class="squiggle" viewBox="0 0 560 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 9 C30 4 52 12 80 8 C110 4 132 11 162 8 C192 5 214 12 244 8.5 C274 5 297 11.5 327 8 C357 4.5 379 11 409 8 C439 5 461 12 491 8.5 C516 5.5 538 10 556 7.5"
+          stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
+  </svg>
+  <h1>sunset in a jar</h1>
+  <p class="sub">little skies, saved for later</p>
+  <p class="count" id="count"></p>
+  <button class="linkish" id="pour-btn" hidden>pour them out</button>
+</header>
+
+<main id="shelf"></main>
+
+<input type="file" id="file-in" accept="image/*" hidden>
+
+<!-- add modal -->
+<div class="overlay" id="add-modal" hidden>
+  <div class="card">
+    <h2 id="modal-title">seal this one in</h2>
+    <div class="preview-wrap" id="preview-wrap"></div>
+    <div class="field">
+      <label for="in-title">name this sunset</label>
+      <input id="in-title" type="text" maxlength="40" placeholder="through the trees" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="in-date">when was it</label>
+      <input id="in-date" type="date">
+    </div>
+    <div class="field">
+      <label for="in-note">the story, if there is one</label>
+      <input id="in-note" type="text" maxlength="90" placeholder="walked home the long way for this" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>pick a lid</label>
+      <div class="lids" id="lids"></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="save-btn">put it on the shelf</button>
+      <button class="linkish" id="cancel-btn">never mind</button>
+    </div>
+  </div>
+</div>
+
+<!-- lightbox -->
+<div class="overlay" id="lightbox" hidden>
+  <button id="lb-close" aria-label="close">×</button>
+  <img id="lb-img" alt="">
+  <div class="cap">
+    <div class="t" id="lb-title"></div>
+    <div class="d" id="lb-date"></div>
+    <div class="n" id="lb-note"></div>
+  </div>
+  <div class="lb-actions">
+    <button class="linkish" id="lb-edit">fix the label</button>
+    <button class="linkish" id="lb-del">let this one go</button>
+  </div>
+</div>
+
+<!-- slideshow -->
+<div class="overlay" id="show" hidden>
+  <button id="sh-close" aria-label="close">×</button>
+  <img id="sh-a" alt=""><img id="sh-b" alt="">
+  <div class="cap">
+    <div class="t" id="sh-title"></div>
+    <div class="d" id="sh-date"></div>
+  </div>
+  <div class="hint">click for the next one · esc to come back</div>
+</div>
+
+<div id="drop-hint" hidden>drop the sky here</div>
+
+<script>
+"use strict";
+
+/* ---------- palette ---------- */
+const LIDS = [
+  { fill:"#b9e4a4", stroke:"#7fb968" },  // green
+  { fill:"#f5e57e", stroke:"#d3bd4a" },  // yellow
+  { fill:"#f6b9a5", stroke:"#dd8a6f" },  // salmon
+  { fill:"#cfc2ec", stroke:"#a08fd2" },  // lavender
+  { fill:"#a9d6ee", stroke:"#6faadb" }   // sky
+];
+const MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+
+/* sample skies (unsplash) — shown until you add your own */
+const SAMPLE_NOTE = "borrowed from unsplash, until yours takes its place";
+const SAMPLES = [
+  { url:"https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=900&q=80&fm=jpg", title:"over the fields",    date:"2026-06-14", lid:3, note:SAMPLE_NOTE },
+  { url:"https://images.unsplash.com/photo-1472120435266-53107fd0c44a?w=900&q=80&fm=jpg", title:"through the trees",  date:"2026-05-02", lid:0, note:SAMPLE_NOTE },
+  { url:"https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=900&q=80&fm=jpg", title:"the sky caught fire",date:"2026-04-19", lid:2, note:SAMPLE_NOTE },
+  { url:"https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=900&q=80&fm=jpg", title:"golden hour",        date:"2026-03-28", lid:1, note:SAMPLE_NOTE },
+  { url:"https://images.unsplash.com/photo-1476820865390-c52aeebb9891?w=900&q=80&fm=jpg", title:"from the hilltop",   date:"2026-02-15", lid:4, note:SAMPLE_NOTE }
+];
+
+/* ---------- jar svg builders ---------- */
+const BODY_D = "M56 70 C54 79 41 85 36 96 C30 107 33 128 31.5 150 C30 176 31 206 34 228 C36.5 245 45 252.5 61 254.5 C86 257.5 117 257.5 141 254 C157.5 251.5 164.5 243 166.5 226 C169.5 203 169.5 173 168.5 149 C167.6 127 170 106 164 96 C158.5 86.5 146.5 79 145 70 C144.6 66 142 62.5 137.5 62.5 L62.5 62.5 C58 62.5 56.6 66.2 56 70 Z";
+const LID_D  = "M50 50 C45 37 54 27.5 71 25.5 C95 22.6 116 22.6 133 25.5 C149 28 157 37 152.5 49 C150 56.5 143.5 61 131 61.5 L68 61.5 C58.5 61 52.5 57 50 50 Z";
+
+function lidSvg(c){
+  let dashes = "";
+  for (let x = 60; x <= 142; x += 10.5){
+    dashes += `<line x1="${x}" y1="55" x2="${x-1.5}" y2="64" stroke="${c.stroke}" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>`;
+  }
+  return `
+    <path d="${LID_D}" fill="${c.fill}" stroke="${c.stroke}" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M58 40 C80 34 122 34 145 40 M62 48 C88 43 116 43 141 48 M60 32.5 C85 27.5 118 27.5 143 32.5"
+          fill="none" stroke="${c.stroke}" stroke-width="2.2" stroke-linecap="round" opacity=".4"/>
+    ${dashes}`;
+}
+
+function fliesSvg(){
+  let s = `<g clip-path="url(#jarBodyClip)">`;
+  for (let i = 0; i < 3; i++){
+    const cx = (58 + Math.random() * 84).toFixed(0);
+    const cy = (115 + Math.random() * 105).toFixed(0);
+    const dur = (6 + Math.random() * 5).toFixed(1);
+    const gdur = (2.2 + Math.random() * 2.2).toFixed(1);
+    const del = (-Math.random() * 8).toFixed(1);
+    const gdel = (-Math.random() * 3).toFixed(1);
+    const dx = (7 + Math.random() * 13).toFixed(0);
+    const dy = (-(11 + Math.random() * 17)).toFixed(0);
+    s += `<g class="fly" style="--dx:${dx}px;--dy:${dy}px;animation-duration:${dur}s,${gdur}s;animation-delay:${del}s,${gdel}s">
+      <circle cx="${cx}" cy="${cy}" r="5.5" fill="#fff3c4" opacity=".3"/>
+      <circle cx="${cx}" cy="${cy}" r="2" fill="#fff9dd"/>
+    </g>`;
+  }
+  return s + `</g>`;
+}
+
+function jarSvg(imgUrl, lid){
+  return `<svg viewBox="0 0 200 272" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="100" cy="260" rx="62" ry="6" fill="#57534a" opacity=".08"/>
+    <image href="${imgUrl}" x="28" y="58" width="146" height="202"
+           preserveAspectRatio="xMidYMid slice" clip-path="url(#jarBodyClip)"/>
+    <ellipse class="glow" cx="100" cy="163" rx="60" ry="78" fill="url(#glowGrad)"
+             clip-path="url(#jarBodyClip)"/>
+    ${fliesSvg()}
+    <path d="${BODY_D}" fill="none" stroke="var(--ink)" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M46 106 C42 130 41.5 160 43.5 190" fill="none" stroke="#ffffff"
+           stroke-width="4.5" stroke-linecap="round" opacity=".35"/>
+    <g class="lid">${lidSvg(lid)}</g>
+  </svg>`;
+}
+
+function addJarSvg(){
+  return `<svg viewBox="0 0 200 272" xmlns="http://www.w3.org/2000/svg">
+    <path class="dash" d="${BODY_D}" fill="none" stroke="var(--ink-soft)" stroke-width="2.4"
+          stroke-dasharray="7 8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path class="dash" d="${LID_D}" fill="none" stroke="var(--ink-soft)" stroke-width="2.4"
+          stroke-dasharray="7 8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path class="plus" d="M100 148 L100 176 M86 162 L114 162" stroke="var(--ink-soft)"
+          stroke-width="2.6" stroke-linecap="round"/>
+  </svg>`;
+}
+
+/* ---------- indexeddb ---------- */
+const DB_NAME = "sunset-jar", STORE = "sunsets";
+function openDB(){
+  return new Promise((res, rej) => {
+    const rq = indexedDB.open(DB_NAME, 1);
+    rq.onupgradeneeded = () => rq.result.createObjectStore(STORE, { keyPath:"id" });
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+async function dbAll(){
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const rq = db.transaction(STORE).objectStore(STORE).getAll();
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+async function dbPut(item){
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(item);
+    tx.oncomplete = res;
+    tx.onerror = () => rej(tx.error);
+  });
+}
+async function dbGet(id){
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const rq = db.transaction(STORE).objectStore(STORE).get(id);
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+async function dbDel(id){
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete = res;
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+/* ---------- helpers ---------- */
+function fmtDate(iso){
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  return `${MONTHS[m-1]} ${d}, ${y}`;
+}
+function todayISO(){
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
+}
+function tiltFor(id){
+  let h = 0;
+  for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) % 997;
+  return ((h / 997) * 2.4 - 1.2).toFixed(2) + "deg";
+}
+function shrink(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1600;
+      const scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
+      const cv = document.createElement("canvas");
+      cv.width = w; cv.height = h;
+      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      cv.toBlob(b => b ? res(b) : rej(new Error("encode failed")), "image/jpeg", .85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("decode failed")); };
+    img.src = url;
+  });
+}
+
+/* ---------- supabase (optional cloud storage) ----------
+   later on, to keep your sunsets in the cloud:
+   1. create a project at supabase.com
+   2. run supabase-setup.sql in its SQL editor (file is next to this one)
+   3. paste your Project URL + anon public key below, save, reload
+   leave both empty and everything stays in this browser (indexeddb). */
+const SUPABASE = {
+  url: "",       // e.g. "https://abcdefgh.supabase.co"
+  anonKey: ""    // project settings → API keys → anon public
+};
+const CLOUD = !!(SUPABASE.url && SUPABASE.anonKey);
+
+async function sbFetch(path, opts = {}){
+  const r = await fetch(SUPABASE.url + path, {
+    ...opts,
+    headers: {
+      apikey: SUPABASE.anonKey,
+      Authorization: "Bearer " + SUPABASE.anonKey,
+      ...(opts.headers || {})
+    }
+  });
+  if (!r.ok) throw new Error("supabase " + r.status + ": " + (await r.text()).slice(0, 180));
+  return r;
+}
+
+const cloudStore = {
+  async list(){
+    const r = await sbFetch("/rest/v1/sunsets?select=*&order=date.desc,id.desc");
+    return (await r.json()).map(row => ({
+      ...row,
+      imgUrl: SUPABASE.url + "/storage/v1/object/public/sunsets/" + row.image_path
+    }));
+  },
+  async add(item, blob){
+    const path = item.id + ".jpg";
+    await sbFetch("/storage/v1/object/sunsets/" + path, {
+      method: "POST",
+      headers: { "Content-Type": "image/jpeg" },
+      body: blob
+    });
+    await sbFetch("/rest/v1/sunsets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({ ...item, image_path: path })
+    });
+  },
+  async remove(item){
+    await sbFetch("/rest/v1/sunsets?id=eq." + item.id, { method: "DELETE" });
+    await sbFetch("/storage/v1/object/sunsets/" + item.image_path, { method: "DELETE" }).catch(() => {});
+  },
+  async update(item){
+    await sbFetch("/rest/v1/sunsets?id=eq." + item.id, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({ title: item.title, date: item.date, lid: item.lid, note: item.note || "" })
+    });
+  }
+};
+
+const localStore = {
+  async list(){
+    const items = (await dbAll()).sort((a, b) =>
+      (b.date || "").localeCompare(a.date || "") || b.id - a.id);
+    return items.map(it => {
+      const u = URL.createObjectURL(it.blob);
+      liveUrls.push(u);
+      return { ...it, imgUrl: u };
+    });
+  },
+  add(item, blob){ return dbPut({ ...item, blob }); },
+  remove(item){ return dbDel(item.id); },
+  async update(item){
+    const rec = await dbGet(item.id);
+    if (!rec) throw new Error("jar not found");
+    return dbPut({ ...rec, title: item.title, date: item.date, lid: item.lid, note: item.note || "" });
+  }
+};
+
+const store = CLOUD ? cloudStore : localStore;
+
+/* first run after switching to supabase: offer to move local jars up */
+async function maybeMigrate(){
+  if (!CLOUD) return;
+  try{
+    const local = await dbAll();
+    if (!local.length) return;
+    const cloud = await cloudStore.list();
+    if (cloud.length) return;
+    const n = local.length;
+    if (!confirm("move your " + n + " locally-stored jar" + (n > 1 ? "s" : "") + " up to supabase?")) return;
+    for (const it of local){
+      await cloudStore.add({ id: it.id, title: it.title, date: it.date, lid: it.lid, note: it.note || "" }, it.blob);
+      await dbDel(it.id);
+    }
+  }catch(e){ console.warn("migration skipped:", e); }
+}
+
+/* ---------- render ---------- */
+const shelf = document.getElementById("shelf");
+const countEl = document.getElementById("count");
+const pourBtn = document.getElementById("pour-btn");
+let liveUrls = [];
+let lastShowing = [];
+let justAdded = null;
+
+async function render(){
+  liveUrls.forEach(u => URL.revokeObjectURL(u));
+  liveUrls = [];
+  let items = [], cloudError = null;
+  try{
+    items = await store.list();
+  }catch(e){
+    cloudError = e;
+    console.warn(e);
+  }
+
+  shelf.innerHTML = "";
+
+  const add = document.createElement("figure");
+  add.className = "jar add";
+  add.innerHTML = addJarSvg() + `<figcaption><span class="t">add a sunset</span><span class="d">&nbsp;</span></figcaption>`;
+  add.onclick = () => fileIn.click();
+  shelf.appendChild(add);
+
+  const showing = items.length ? items
+    : SAMPLES.map(s => ({ ...s, sample:true, id:s.url, imgUrl:s.url }));
+
+  showing.forEach((it, i) => {
+    const fig = document.createElement("figure");
+    fig.className = "jar";
+    fig.style.setProperty("--tilt", tiltFor(it.id));
+    if (it.id === justAdded) fig.classList.add("landed");
+    else fig.style.animationDelay = Math.min(i * .05, .4) + "s";
+    fig.innerHTML = jarSvg(it.imgUrl, LIDS[it.lid % LIDS.length]) +
+      `<figcaption><span class="t"></span><span class="d"></span></figcaption>`;
+    fig.querySelector(".t").textContent = it.title || "a sunset";
+    fig.querySelector(".d").textContent = fmtDate(it.date);
+    fig.onclick = () => openLightbox(it, it.imgUrl);
+    shelf.appendChild(fig);
+  });
+  justAdded = null;
+  lastShowing = showing;
+  pourBtn.hidden = showing.length === 0;
+
+  countEl.textContent = cloudError
+    ? "couldn't reach supabase — check your keys and connection"
+    : items.length === 0
+    ? "five borrowed skies from unsplash — add your own and they'll step aside"
+    : (items.length === 1 ? "one sky collected" : items.length + " skies collected")
+      + (CLOUD ? " · synced to supabase" : "");
+}
+
+/* ---------- add flow ---------- */
+const fileIn = document.getElementById("file-in");
+const addModal = document.getElementById("add-modal");
+const previewWrap = document.getElementById("preview-wrap");
+const inTitle = document.getElementById("in-title");
+const inDate = document.getElementById("in-date");
+const inNote = document.getElementById("in-note");
+const lidsEl = document.getElementById("lids");
+const modalTitle = document.getElementById("modal-title");
+const saveBtn = document.getElementById("save-btn");
+let pendingBlob = null, pendingUrl = null, pendingLid = 0;
+let editing = null;
+
+function paintLids(){
+  lidsEl.innerHTML = "";
+  LIDS.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.style.background = c.fill;
+    b.style.boxShadow = `inset 0 0 0 2px ${c.stroke}55`;
+    if (i === pendingLid) b.classList.add("sel");
+    b.onclick = () => { pendingLid = i; paintLids(); paintPreview(); };
+    lidsEl.appendChild(b);
+  });
+}
+function paintPreview(){
+  const u = pendingUrl || (editing && editing.imgUrl);
+  if (u) previewWrap.innerHTML = jarSvg(u, LIDS[pendingLid]);
+}
+
+async function handleFile(f){
+  if (!f) return;
+  try{
+    pendingBlob = await shrink(f);
+  }catch(e){
+    alert("hmm, couldn't read that photo — try a jpg or png (iPhone HEIC sometimes needs converting)");
+    return;
+  }
+  editing = null;
+  if (pendingUrl) URL.revokeObjectURL(pendingUrl);
+  pendingUrl = URL.createObjectURL(pendingBlob);
+  pendingLid = Math.floor(Math.random() * LIDS.length);
+  inTitle.value = "";
+  inDate.value = todayISO();
+  inNote.value = "";
+  modalTitle.textContent = "seal this one in";
+  saveBtn.textContent = "put it on the shelf";
+  paintLids();
+  paintPreview();
+  addModal.hidden = false;
+  setTimeout(() => inTitle.focus(), 60);
+}
+
+fileIn.onchange = () => {
+  const f = fileIn.files[0];
+  fileIn.value = "";
+  handleFile(f);
+};
+
+function openEdit(it){
+  closeLightbox();
+  editing = it;
+  pendingBlob = null;
+  if (pendingUrl){ URL.revokeObjectURL(pendingUrl); pendingUrl = null; }
+  pendingLid = it.lid % LIDS.length;
+  inTitle.value = it.title || "";
+  inDate.value = it.date || todayISO();
+  inNote.value = it.note || "";
+  modalTitle.textContent = "fix the label";
+  saveBtn.textContent = "keep the changes";
+  paintLids();
+  paintPreview();
+  addModal.hidden = false;
+  setTimeout(() => inTitle.focus(), 60);
+}
+
+function closeAdd(){
+  addModal.hidden = true;
+  if (pendingUrl){ URL.revokeObjectURL(pendingUrl); pendingUrl = null; }
+  pendingBlob = null;
+  editing = null;
+}
+
+/* drag a photo anywhere onto the page */
+const dropHint = document.getElementById("drop-hint");
+let dragDepth = 0;
+document.addEventListener("dragenter", e => {
+  e.preventDefault();
+  if (++dragDepth === 1) dropHint.hidden = false;
+});
+document.addEventListener("dragover", e => e.preventDefault());
+document.addEventListener("dragleave", () => {
+  if (--dragDepth <= 0){ dragDepth = 0; dropHint.hidden = true; }
+});
+document.addEventListener("drop", e => {
+  e.preventDefault();
+  dragDepth = 0;
+  dropHint.hidden = true;
+  const f = [...(e.dataTransfer.files || [])].find(x => x.type.startsWith("image/"));
+  if (f) handleFile(f);
+});
+
+saveBtn.onclick = async () => {
+  const meta = {
+    title: inTitle.value.trim().toLowerCase(),
+    date: inDate.value || todayISO(),
+    lid: pendingLid,
+    note: inNote.value.trim()
+  };
+  try{
+    if (editing){
+      await store.update({ ...editing, ...meta });
+    } else {
+      if (!pendingBlob) return;
+      justAdded = Date.now();
+      await store.add({ id: justAdded, ...meta }, pendingBlob);
+    }
+  }catch(e){
+    alert("couldn't save this one — " + e.message);
+    return;
+  }
+  closeAdd();
+  render();
+};
+document.getElementById("cancel-btn").onclick = closeAdd;
+[inTitle, inNote].forEach(el =>
+  el.addEventListener("keydown", e => { if (e.key === "Enter") saveBtn.click(); }));
+addModal.addEventListener("click", e => { if (e.target === addModal) closeAdd(); });
+
+/* ---------- lightbox ---------- */
+const lightbox = document.getElementById("lightbox");
+const lbImg = document.getElementById("lb-img");
+const lbTitle = document.getElementById("lb-title");
+const lbDate = document.getElementById("lb-date");
+const lbNote = document.getElementById("lb-note");
+const lbDel = document.getElementById("lb-del");
+const lbEdit = document.getElementById("lb-edit");
+let lbItem = null;
+let typeTimer = null;
+
+function typeTitle(text){
+  clearInterval(typeTimer);
+  lbTitle.textContent = "";
+  lbTitle.classList.add("typing");
+  let i = 0;
+  typeTimer = setInterval(() => {
+    lbTitle.textContent = text.slice(0, ++i);
+    if (i >= text.length){
+      clearInterval(typeTimer);
+      setTimeout(() => lbTitle.classList.remove("typing"), 900);
+    }
+  }, 45);
+}
+
+function openLightbox(item, url){
+  lbItem = item;
+  lbImg.src = url;
+  lbImg.alt = item.title || "a sunset";
+  typeTitle(item.title || "a sunset");
+  lbDate.textContent = fmtDate(item.date);
+  lbNote.textContent = item.note || "";
+  lbNote.hidden = !item.note;
+  lbDel.textContent = "let this one go";
+  lbDel.classList.remove("arm");
+  lbDel.hidden = !!item.sample;
+  lbEdit.hidden = !!item.sample;
+  lightbox.hidden = false;
+}
+function closeLightbox(){
+  lightbox.hidden = true;
+  lbItem = null;
+  clearInterval(typeTimer);
+  lbTitle.classList.remove("typing");
+}
+lbEdit.onclick = () => { if (lbItem) openEdit(lbItem); };
+
+document.getElementById("lb-close").onclick = closeLightbox;
+lightbox.addEventListener("click", e => { if (e.target === lightbox) closeLightbox(); });
+lbDel.onclick = async () => {
+  if (!lbItem) return;
+  if (!lbDel.classList.contains("arm")){
+    lbDel.classList.add("arm");
+    lbDel.textContent = "sure? tap once more";
+    return;
+  }
+  try{
+    await store.remove(lbItem);
+  }catch(e){
+    alert("couldn't let it go — " + e.message);
+    return;
+  }
+  closeLightbox();
+  render();
+};
+/* ---------- slideshow: pour them out ---------- */
+const showEl = document.getElementById("show");
+const shImgs = [document.getElementById("sh-a"), document.getElementById("sh-b")];
+const shTitle = document.getElementById("sh-title");
+const shDate = document.getElementById("sh-date");
+let shList = [], shIdx = 0, shBuf = 0, shTimer = null;
+
+function slideTo(i){
+  if (!shList.length) return;
+  shIdx = (i + shList.length) % shList.length;
+  const it = shList[shIdx];
+  shBuf = 1 - shBuf;
+  const front = shImgs[shBuf], back = shImgs[1 - shBuf];
+  front.src = it.imgUrl;
+  front.classList.add("on");
+  back.classList.remove("on");
+  shTitle.textContent = it.title || "a sunset";
+  shDate.textContent = fmtDate(it.date);
+  clearTimeout(shTimer);
+  shTimer = setTimeout(() => slideTo(shIdx + 1), 5200);
+}
+function openShow(){
+  if (!lastShowing.length) return;
+  shList = lastShowing;
+  shImgs.forEach(im => im.classList.remove("on"));
+  showEl.hidden = false;
+  slideTo(0);
+}
+function closeShow(){
+  showEl.hidden = true;
+  clearTimeout(shTimer);
+  shImgs.forEach(im => { im.classList.remove("on"); im.removeAttribute("src"); });
+}
+pourBtn.onclick = openShow;
+document.getElementById("sh-close").onclick = e => { e.stopPropagation(); closeShow(); };
+showEl.addEventListener("click", () => slideTo(shIdx + 1));
+
+/* ---------- keyboard ---------- */
+document.addEventListener("keydown", e => {
+  if (!showEl.hidden){
+    if (e.key === "Escape") closeShow();
+    else if (e.key === "ArrowRight") slideTo(shIdx + 1);
+    else if (e.key === "ArrowLeft") slideTo(shIdx - 1);
+    return;
+  }
+  if (e.key === "Escape"){
+    if (!lightbox.hidden) closeLightbox();
+    else if (!addModal.hidden) closeAdd();
+  }
+});
+
+(async () => {
+  await maybeMigrate();
+  render();
+})();
+</script>
+</body>
+</html>
